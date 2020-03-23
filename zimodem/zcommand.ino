@@ -707,7 +707,7 @@ ZResult ZCommand::doBaudCommand(int vval, uint8_t *vbuf, int vlen)
       return ZERROR;
     *commaLoc=0;
     int baudChk=atoi((char *)vbuf);
-    if((baudChk<128)||(baudChk>115200))
+    if((baudChk<100)||(baudChk>115200)) //CHANGED TO ACCOMODATE 110 BAUD TELETYPES
       return ZERROR;
     if((conStr[0]<'5')||(conStr[0]>'8'))
       return ZERROR;
@@ -1990,6 +1990,10 @@ ZResult ZCommand::doSerialCommand()
               *eq=0;
               int snum = atoi((char *)vbuf);
               int sval = atoi((char *)(eq + 1));
+		    
+              int totalSPIFFSSize; //ADDED TO ACCOMODATE THE MOVED INIT MESSAGE
+              char s[100];
+              
               if((snum == 0)&&((vbuf[0]!='0')||(eq != (char *)(vbuf+1))))
                 result=ZERROR;
               else
@@ -2043,6 +2047,26 @@ ZResult ZCommand::doSerialCommand()
                   BS=(char)sval;
                 }
                 break;
+              case 6:
+                FSInfo info;
+                SPIFFS.info(info);
+                totalSPIFFSSize = info.totalBytes;
+
+                serial.prints("Zimodem Firmware v");
+
+                HWSerial.setTimeout(60000);
+                serial.prints(ZIMODEM_VERSION);
+
+                serial.prints(commandMode.EOLN);
+                
+                sprintf(s,"sdk=%s chipid=%d cpu@%d",ESP.getSdkVersion(),ESP.getFlashChipId(),ESP.getCpuFreqMHz());
+                serial.prints(s);
+                serial.prints(commandMode.EOLN);
+
+                sprintf(s,"totsize=%dk ssize=%dk fsize=%dk speed=%dm",(ESP.getFlashChipRealSize()/1024),(ESP.getSketchSize()/1024),totalSPIFFSSize/1024,(ESP.getFlashChipSpeed()/1000000));
+                serial.prints(s);
+                serial.prints(commandMode.EOLN);
+		break;
               case 40:
                 if(sval < 1)
                   result=ZERROR;
@@ -2677,11 +2701,11 @@ void ZCommand::showInitMessage()
   FSInfo info;
   SPIFFS.info(info);
   int totalSPIFFSSize = info.totalBytes;
-#ifdef RS232_INVERTED
-  serial.prints("C64Net WiFi Firmware v");
-#else
+//#ifdef RS232_INVERTED
+//  serial.prints("C64Net WiFi Firmware v");
+//#else
   serial.prints("Zimodem Firmware v");
-#endif
+//#endif
 #endif
   HWSerial.setTimeout(60000);
   serial.prints(ZIMODEM_VERSION);
@@ -2689,22 +2713,22 @@ void ZCommand::showInitMessage()
   //serial.prints(compile_date);
   //serial.prints(")");
   serial.prints(commandMode.EOLN);
-  char s[100];
-#ifdef ZIMODEM_ESP32
-  sprintf(s,"sdk=%s chipid=%d cpu@%d",ESP.getSdkVersion(),ESP.getChipRevision(),ESP.getCpuFreqMHz());
-#else
-  sprintf(s,"sdk=%s chipid=%d cpu@%d",ESP.getSdkVersion(),ESP.getFlashChipId(),ESP.getCpuFreqMHz());
-#endif
-  serial.prints(s);
-  serial.prints(commandMode.EOLN);
-#ifdef ZIMODEM_ESP32
-  sprintf(s,"totsize=%dk hsize=%dk fsize=%dk speed=%dm",(ESP.getFlashChipSize()/1024),(ESP.getFreeHeap()/1024),totalSPIFFSSize/1024,(ESP.getFlashChipSpeed()/1000000));
-#else
-  sprintf(s,"totsize=%dk ssize=%dk fsize=%dk speed=%dm",(ESP.getFlashChipRealSize()/1024),(ESP.getSketchSize()/1024),totalSPIFFSSize/1024,(ESP.getFlashChipSpeed()/1000000));
-#endif
+//   char s[100];
+// #ifdef ZIMODEM_ESP32
+//   sprintf(s,"sdk=%s chipid=%d cpu@%d",ESP.getSdkVersion(),ESP.getChipRevision(),ESP.getCpuFreqMHz());
+// #else
+//   sprintf(s,"sdk=%s chipid=%d cpu@%d",ESP.getSdkVersion(),ESP.getFlashChipId(),ESP.getCpuFreqMHz());
+// #endif
+//   serial.prints(s);
+//   serial.prints(commandMode.EOLN);
+// #ifdef ZIMODEM_ESP32
+//   sprintf(s,"totsize=%dk hsize=%dk fsize=%dk speed=%dm",(ESP.getFlashChipSize()/1024),(ESP.getFreeHeap()/1024),totalSPIFFSSize/1024,(ESP.getFlashChipSpeed()/1000000));
+// #else
+//   sprintf(s,"totsize=%dk ssize=%dk fsize=%dk speed=%dm",(ESP.getFlashChipRealSize()/1024),(ESP.getSketchSize()/1024),totalSPIFFSSize/1024,(ESP.getFlashChipSpeed()/1000000));
+// #endif
   
-  serial.prints(s);
-  serial.prints(commandMode.EOLN);
+//   serial.prints(s);
+//  serial.prints(commandMode.EOLN);
   if(wifiSSI.length()>0)
   {
     if(wifiConnected)
